@@ -23,7 +23,7 @@ def rope(q, k, seq_len: int, head_dim: int):
     inv_freq = 1.0 / (10000 ** (np.arange(0, head_dim, 2, dtype='float32') / head_dim))
     t = np.arange(seq_len, dtype='float32')
     freqs = np.outer(t, inv_freq)
-    emb = np.concatentate([freqs, freqs], axis=-1)
+    emb = np.concatenate([freqs, freqs], axis=-1)
     cos = keras.ops.cast(np.cos(emb), dtype='float32')[None, :, None, :]
     sin = keras.ops.cast(np.sin(emb), dtype='float32')[None, :, None, :]
 
@@ -38,11 +38,17 @@ def rope(q, k, seq_len: int, head_dim: int):
     return q_embed, k_embed
 
 class MLP(layers.Layer):
-    def __init__(self, d_model: int, intermediate_dim: int, **kwargs):
+    def __init__(self, d_model, intermediate_dim, **kwargs):
         super().__init__(**kwargs)
         self.gate_proj = layers.Dense(intermediate_dim, use_bias=False)
         self.up_proj = layers.Dense(intermediate_dim, use_bias=False)
         self.down_proj = layers.Dense(d_model, use_bias=False)
+
+    def build(self, input_shape):
+        self.gate_proj.build(input_shape)
+        self.up_proj.build(input_shape)
+        self.down_proj.build((input_shape[0], input_shape[1], self.gate_proj.units))
+        self.built = True
 
     def call(self, x):
         gate = keras.ops.silu(self.gate_proj(x))
@@ -50,19 +56,26 @@ class MLP(layers.Layer):
         return self.down_proj(activated)
 
 class GQA(layers.Layer):
-    def __init__(self, d_model: int, n_heads: int, n_kv_heads: int, seq_len: int, **kwargs):
+    def __init__(self, d_model, n_heads, n_kv_heads, seq_len, **kwargs):
         super().__init__(**kwargs)
-
+        self.d_model = d_model
         self.n_heads = n_heads
         self.n_kv_heads = n_kv_heads
-        self.num_queris_per_kv = n_heads // n_kv_heads
         self.head_dim = d_model // n_heads
         self.seq_len = seq_len
+        self.num_queries_per_kv = n_heads // n_kv_heads
 
         self.q_proj = layers.Dense(n_heads * self.head_dim, use_bias=False)
         self.k_proj = layers.Dense(n_kv_heads * self.head_dim, use_bias=False)
         self.v_proj = layers.Dense(n_kv_heads * self.head_dim, use_bias=False)
         self.o_proj = layers.Dense(d_model, use_bias=False)
+
+    def build(self, input_shape):
+        self.q_proj.build(input_shape)
+        self.k_proj.build(input_shape)
+        self.v_proj.build(input_shape)
+        self.o_proj.build((input_shape[0], self.seq_len, self.n_heads * self.head_dim))
+        self.built = True
 
     def call(self, x):
         batch_size = keras.ops.shape(x)[0]

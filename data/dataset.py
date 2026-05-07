@@ -1,9 +1,9 @@
 import tensorflow as tf
 from datasets import load_dataset
 from transformers import AutoTokenizer
-from config import MyLLMConfig
+from config import MyllmConfig
 
-def get_dataset(config: MyLLMConfig):
+def get_dataset(config: MyllmConfig):
     tokenizer = AutoTokenizer.from_pretrained("HuggingFaceTB/SmolLM-135M")
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token

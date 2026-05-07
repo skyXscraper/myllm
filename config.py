@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-class MyLLMConfig(BaseModel):
+class MyllmConfig(BaseModel):
     vocab_size: int = Field(default=50257)
     d_model: int = Field(default=576)
     n_heads: int = Field(default=9)
