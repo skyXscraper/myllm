@@ -2,3 +2,5 @@ pydantic
 numpy 
 keras
 tensorflow
+transformers
+datasets

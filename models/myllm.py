@@ -1,6 +1,6 @@
 import keras
+from layers import MLP, GQA, RMSNorm
 from keras import layers
-from .layers import MLP, GQA, RMSNorm
 from config import MyllmConfig
 
 class MyllmDecoder(layers.Layer):
